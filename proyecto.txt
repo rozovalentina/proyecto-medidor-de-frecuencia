@@ -1,0 +1,81 @@
+#include <SevenSeg.h> // incluimos la librería para nuestro display
+typedef enum {FOLLOWING_INPUT, IGNORE_INPUT} STATE_T;
+typedef enum {COMPUTING_HR} STATE;
+/* --------------------------- Symbolic Constants --------------------------- */
+String datos;  // en esta variable se almacenan los numero a mostrar o letras.
+SevenSeg disp(2,3,4,5,6,7,8); //declaramos nuestro display y definimos sus pines
+//            A,B,C,D,E,F,G
+const int numOfDigits =4; // definimos el numero de dígitos de nuestro display
+int digitPins [numOfDigits]={13,12,11,10}; // los pines para cada Digito
+//                           D1,D2,D3,D4
+
+const int pin =13; // LED adjunto a este pin
+int current_reading ; // esta variable rastrea el estado del botón, bajo si no se presiona, alto si se presiona
+int current_time ; // esta variable rastrea el estado del botón, bajo si no se presiona, alto si se presiona
+int previous_time  ; // esta variable rastrea el estado del display, negativo si está apagado, positivo si está encendido
+long previous_reading; // la última vez que se alteró el pin de salida
+long extinction ; // el tiempo de rebote; aumentar si la salida parpadea
+String heart_rate;
+String heartrate;
+STATE_T state;
+STATE state1;
+void setup(){
+ Serial.begin(9600);  //configuramos nuestro puerto serie
+ disp.setDigitPins (numOfDigits ,digitPins); //Configuramos el display
+ // establece el modo de los pines ...
+  pinMode (pin, INPUT);
+}
+ void loop () {
+  heartrate= heart();
+ while(Serial.available() != 0){
+
+datos= heartrate;
+}
+disp.write(datos);  // mostramos los números o letras en el display
+ 
+ }
+String heart() {
+  switch(state1) //la variable a evaluar para el cambio de estado es PIN -> state
+{
+case COMPUTING_HR: //primer estado
+  if (previous_reading ==LOW && current_reading==HIGH ) {
+    current_time=millis();
+    heart_rate=600000/ (current_time-previous_time);
+    current_time=previous_time;
+    previous_reading=current_reading;
+    current_reading= clean_signal(heartrate);
+    return heart_rate;
+    }
+    else {
+      previous_reading = current_reading;
+      current_reading= clean_signal(heartrate);
+      }
+}
+}
+ int clean_signal (String heartrate){
+ // muestra el estado del botón - ¿está presionado o no?
+  previous_reading = current_reading = digitalRead (pin);
+  digitalWrite (pin, current_reading );
+  extinction =50;
+  switch(state) //la variable a evaluar para el cambio de estado es PIN -> state
+{
+case FOLLOWING_INPUT: //primer estado
+  if (previous_reading == current_reading ) {
+    previous_reading = current_reading;
+    current_reading = digitalRead (pin);
+   state = FOLLOWING_INPUT;
+    }
+    else {
+      disp.write(heartrate);  // mostramos los números o letras en el display
+      previous_time = millis();
+      state = IGNORE_INPUT;
+      }
+case IGNORE_INPUT:
+     if (millis() - previous_time >= extinction){
+    previous_reading = current_reading;
+  current_reading = digitalRead( pin );
+ state = FOLLOWING_INPUT;
+     }
+     
+    }
+}
